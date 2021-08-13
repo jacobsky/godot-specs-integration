@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://common/gd_world.tscn" type="PackedScene" id=1]
+[ext_resource path="res://gdnative/Example05.gdns" type="Script" id=2]
+
+[node name="example05" type="Node2D"]
+script = ExtResource( 2 )
+world_path = NodePath("gd_world")
+
+[node name="gd_world" parent="." instance=ExtResource( 1 )]

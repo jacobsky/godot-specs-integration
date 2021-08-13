@@ -1,0 +1,11 @@
+[workspace]
+# I would highly recommend using multiple workspaces for your 
+members = ["game", "specs-engine", "gd-specs"]
+
+# The following are some simple optimization flags that can be used to help ensure that the game is running at it's highest
+# performance
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+opt-level = 3

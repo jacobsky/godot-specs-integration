@@ -1,0 +1,26 @@
+[package]
+name = "gd-specs"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "gd_specs"
+path = "src/lib.rs"
+
+[dependencies]
+specs-engine = { path = "../specs-engine", features = ["godot"]}
+
+gdnative = "0.9.3"
+# This is the ECS of choice that is being demonstrated in this project.
+specs = "0.17"
+specs-derive = "0.4.1"
+
+# this is used to help map Components to GodotEntity
+strum = "0.21.0"
+strum_macros = "0.21.1"
+
+# This is to allow unified logging functionality
+log = { version = "0.4", features = ["max_level_trace", "release_max_level_warn"] }
+flexi_logger = "0.18"

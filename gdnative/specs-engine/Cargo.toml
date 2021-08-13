@@ -1,0 +1,26 @@
+[package]
+name = "specs-engine"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "specs_engine"
+path = "src/lib.rs"
+
+[features]
+default = []
+godot = [ "gdnative" ]
+
+[dependencies]
+# This is used for some of the queues
+crossbeam = "0"
+# This is the ECS of choice that is being demonstrated in this project.
+specs = "0.17"
+specs-derive = "0.4.1"
+
+gdnative = { version = "0.9.3", optional = true }
+
+log = { version = "0.4", features = ["max_level_trace", "release_max_level_warn"] }
+flexi_logger = "0.18"

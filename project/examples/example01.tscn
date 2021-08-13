@@ -1,0 +1,37 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://common/entity.tscn" type="PackedScene" id=1]
+[ext_resource path="res://common/gd_world.tscn" type="PackedScene" id=2]
+[ext_resource path="res://gdnative/Example01.gdns" type="Script" id=3]
+
+[node name="example01" type="Node2D"]
+script = ExtResource( 3 )
+bounding_box = Rect2( 0, 0, 1024, 600 )
+change_colors = true
+world_path = NodePath("gd_world")
+
+[node name="gd_world" parent="." instance=ExtResource( 2 )]
+
+[node name="entity" parent="." instance=ExtResource( 1 )]
+position = Vector2( 389, 169 )
+world_path = NodePath("../gd_world")
+components = {
+"StayInsideBounds": true,
+"Velocity": Vector2( 0, 100 )
+}
+
+[node name="entity2" parent="." instance=ExtResource( 1 )]
+position = Vector2( 580, 390 )
+world_path = NodePath("../gd_world")
+components = {
+"StayInsideBounds": true,
+"Velocity": Vector2( 100, 0 )
+}
+
+[node name="entity3" parent="." instance=ExtResource( 1 )]
+position = Vector2( 276, 333 )
+world_path = NodePath("../gd_world")
+components = {
+"StayInsideBounds": true,
+"Velocity": Vector2( 100, 100 )
+}

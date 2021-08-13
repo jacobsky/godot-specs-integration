@@ -1,0 +1,17 @@
+[package]
+name = "game"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+name = "gdspecs"
+path = "src/lib.rs"
+crate-type=["cdylib"]
+
+[dependencies]
+gd-specs = { path = "../gd-specs"}
+specs-engine = { path = "../specs-engine"}
+
+gdnative = "0.9.3"
+log = { version = "0.4", features = ["max_level_trace", "release_max_level_warn"] }
+flexi_logger = "0.17.1"

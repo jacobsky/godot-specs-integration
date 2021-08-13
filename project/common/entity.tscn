@@ -1,0 +1,16 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://resources/sprites/smile.tres" type="Texture" id=1]
+[ext_resource path="res://gdnative/GDEntity.gdns" type="Script" id=2]
+[ext_resource path="res://resources/materials/entity_material.tres" type="Material" id=3]
+
+[node name="entity" type="Node2D"]
+script = ExtResource( 2 )
+components = {
+"StayInsideBounds": true,
+"Velocity": Vector2( 0, 0 )
+}
+
+[node name="sprite" type="Sprite" parent="."]
+material = ExtResource( 3 )
+texture = ExtResource( 1 )
