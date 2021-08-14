@@ -62,3 +62,62 @@ pub fn example_6_dispatcher<'a, 'b>() -> Dispatcher<'a, 'b> {
     .with(ColorBasedOnCountSystem{}, "color_change", &["side_effects"])
     .build()
 }
+
+pub fn signal_sync_dispatcher<'a, 'b>(enable_velocity: bool, enable_rotation: bool, enable_scaling: bool) -> Dispatcher<'a, 'b> {
+    let mut builder = specs::DispatcherBuilder::new();
+    if enable_velocity {
+        builder = builder.with(ChangeVelocityAtBounds{}, "update_velocity", &[])
+        .with(UpdatePositionSystem{}, "update_position", &["update_velocity"]);
+    }
+    if enable_rotation {
+        builder = builder.with(UpdateLocalRotationSystem {}, "update_rotation", &[]);
+    }
+    if enable_scaling {
+        builder = builder.with(UpdateLocalScaleSystem {}, "update_scale", &[]);
+    }
+        
+    builder.build()//.with(RainbowColorSystem{}, "change_color", &[]).build()
+}
+
+pub fn hybrid_sync_dispatcher<'a, 'b>(enable_velocity: bool, enable_rotation: bool, enable_scaling: bool) -> Dispatcher<'a, 'b> {
+    let mut builder = specs::DispatcherBuilder::new();
+    if enable_velocity {
+            builder = builder.with(ChangeVelocityAtBounds{}, "update_velocity", &[])
+            .with(UpdatePositionSystem{}, "update_position", &["update_velocity"]);
+    }
+    if enable_rotation {
+        builder = builder.with(UpdateLocalRotationSystem {}, "update_rotation", &[]);
+    }
+    if enable_scaling {
+        builder = builder.with(UpdateLocalScaleSystem {}, "update_scale", &[]);
+    }
+        
+    builder//.with(RainbowColorSystem{}, "change_color", &[])
+        .with_barrier()
+        .with(VSUpdateTransforms{}, "update_transforms", &[])
+        // .with(VSUpdateShaderParams{}, "update_shader_materials", &[])
+        .build()
+}
+
+pub fn vs_sync_dispatcher<'a, 'b>(enable_velocity: bool, enable_rotation: bool, enable_scaling: bool) -> Dispatcher<'a, 'b> {
+    let mut builder = specs::DispatcherBuilder::new();
+    if enable_velocity {
+            builder = builder.with(ChangeVelocityAtBounds{}, "update_velocity", &[])
+            .with(UpdatePositionSystem{}, "update_position", &["update_velocity"]);
+    }
+    if enable_rotation {
+        builder = builder.with(UpdateLocalRotationSystem {}, "update_rotation", &[]);
+    }
+    if enable_scaling {
+        builder = builder.with(UpdateLocalScaleSystem {}, "update_scale", &[]);
+    }
+        
+    builder.with(RainbowColorSystem{}, "change_color", &[])
+        .with_barrier()
+        .with(VSUpdateTransforms{}, "update_transforms", &[])
+        .with(VSUpdateShaderParams{}, "update_shader_materials", &[])
+        // .with(CanvasItemSpawner {}, "spawner", &[])
+        // .with(CanvasItemDespawner{}, "despawner", &[])
+        .build()
+}
+

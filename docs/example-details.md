@@ -16,7 +16,9 @@ Due to how godot works, all Node2D objects have a position, scale and rotation a
 
 All other components are coerced into the correct objects by `GDWorld` during the `synchronize()` method call. In this example the node is responsible for listening for the directly.
 
-For more information on how the `GDEntity` and `GDWorld` work, please refer to the patterns [patterns](patterns.md)
+For more information on how the `GDEntity` and `GDWorld` work, please refer to the [architecture](architecture.md).
+
+As a bonus, I always added a color change system to demonstrate how to manipulate shader material properties from the ECS
 
 ## Example 02 - Movement by Input
 
@@ -25,6 +27,8 @@ This example scene is located at `res::/basics/example03.tscn`
 Source code for the example is located in `gdnative\game\src\runners\example_02.rs`
 
 As an extension of the previous example, this demonstrates adding player movement.
+
+In addition, this sprite includes a `TextureOverride` which is used to convert the smiley face to the traditional `@` of the player character in traditional ASCII Roguelike games.
 
 ## Example 03 - Movement with Moving Objects
 Source code for the example is located in `gdnative/game/src/runners/example_03.rs`
@@ -93,3 +97,5 @@ This feature allows for message queues to be freely available to systems, withou
 ### POI #2
 
 It is possible to verify the assertion made about POI #1 by attempting to interfere and try uncommenting some of the lines. You will get a nicely logged godot error anytime that you attempt to do that. As it uses `try_fetch` under the hood, we can avoid a `panic` and just ignore the input.
+
+## Example 6 puts together the 

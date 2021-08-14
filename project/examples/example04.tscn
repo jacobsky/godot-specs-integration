@@ -5,8 +5,8 @@
 
 [node name="example04" type="Node2D"]
 script = ExtResource( 2 )
-world_path = NodePath("gd_world")
 message = "Hello World!"
+world_path = NodePath("gd_world")
 
 [node name="gd_world" parent="." instance=ExtResource( 1 )]
 

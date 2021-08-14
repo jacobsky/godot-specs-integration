@@ -22,5 +22,5 @@ specs-derive = "0.4.1"
 
 gdnative = { version = "0.9.3", optional = true }
 
-log = { version = "0.4", features = ["max_level_trace", "release_max_level_warn"] }
+log = { version = "0.4" }
 flexi_logger = "0.18"

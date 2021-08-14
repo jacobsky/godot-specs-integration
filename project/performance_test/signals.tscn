@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://gdnative/EndlessSpawnerSignals.gdns" type="Script" id=1]
+[ext_resource path="res://common/gd_world.tscn" type="PackedScene" id=2]
+[ext_resource path="res://common/entity.tscn" type="PackedScene" id=3]
+
+[node name="EndlessSpawnerSignals" type="Node2D"]
+script = ExtResource( 1 )
+entity = ExtResource( 3 )
+bounding_box = Rect2( 0, 0, 1024, 600 )
+max_spawns = 4000
+world_path = NodePath("gd_world")
+spawns_per_second = 1000.0
+
+[node name="gd_world" parent="." instance=ExtResource( 2 )]

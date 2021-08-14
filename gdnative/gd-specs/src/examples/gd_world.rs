@@ -172,8 +172,8 @@ impl GDWorld {
     /// Runs the world with the current dispatcher or prints an error message if it does not have a dispatcher at the time of running.
     /// Note: this should probably return a `Result` but that is outside the scope of this project.
     #[export]
+    #[gdnative::profiled]
     pub fn run(&mut self, owner: TRef<Node>, delta: f64) {
-        
         if let Some(dispatcher) = &mut self.dispatcher {
             {
                 // First we'll increment the time resource

@@ -1,8 +1,8 @@
 [entry]
 
-X11.64="res://../gdnative/target/debug/libgdspecs.so"
-OSX.64="res://../gdnative/target/debug/libgdspecs.dylib"
-Windows.64="res://../gdnative/target/debug/gdspecs.dll"
+X11.64="res://../gdnative/target/release/libgdspecs.so"
+OSX.64="res://../gdnative/target/release/libgdspecs.dylib"
+Windows.64="res://../gdnative/target/release/gdspecs.dll"
 
 [general]
 

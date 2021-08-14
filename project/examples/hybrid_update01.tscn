@@ -1,0 +1,31 @@
+[gd_scene load_steps=6 format=2]
+
+[ext_resource path="res://gdnative/HybridUpdate01.gdns" type="Script" id=1]
+[ext_resource path="res://gdnative/GDWorldHybrid.gdns" type="Script" id=2]
+[ext_resource path="res://gdnative/GDEntityHybrid.gdns" type="Script" id=3]
+[ext_resource path="res://resources/sprites/smile.tres" type="Texture" id=4]
+[ext_resource path="res://resources/materials/entity_material.tres" type="Material" id=5]
+
+[node name="hybrid_update01" type="Node2D"]
+script = ExtResource( 1 )
+enable_rotation = true
+bounding_box = Rect2( 0, 0, 1024, 600 )
+enable_scaling = true
+world_path = NodePath("world")
+
+[node name="entity" type="Node2D" parent="."]
+script = ExtResource( 3 )
+world_path = NodePath("../world")
+components = {
+"AngularVelocity": 1.0,
+"StayInsideBounds": true,
+"Velocity": Vector2( 20, 20 )
+}
+
+[node name="sprite" type="Sprite" parent="entity"]
+material = ExtResource( 5 )
+position = Vector2( 196, 127 )
+texture = ExtResource( 4 )
+
+[node name="world" type="Node" parent="."]
+script = ExtResource( 2 )

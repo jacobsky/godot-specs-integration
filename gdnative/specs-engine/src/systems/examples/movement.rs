@@ -36,29 +36,13 @@ impl <'a> System <'a> for ChangeVelocityAtBounds {
         for (velocity, position) in (&mut velocities, &positions).join() {
             let future_x = position.x + velocity.x * time.delta;
             let future_y = position.y + velocity.y * time.delta;
+            // If the future does not reside in the bounding box
             if future_x < x_min || future_x > x_max {
                 velocity.x = -velocity.x;
             }
             if future_y < y_min || future_y > y_max {
                 velocity.y = -velocity.y;
             }
-        }
-    }
-}
-
-pub struct UpdatePositionSystem {}
-// Note: If you have a more physicy game, you may wish to base Velocity off of Acceleration.
-impl <'a> System <'a> for UpdatePositionSystem {
-    type SystemData = (
-        ReadExpect<'a, Time>,
-        ReadStorage<'a, Velocity>,
-        WriteStorage<'a, Position>
-    );
-    fn run(&mut self, data: Self::SystemData) {
-        let (time, velocities, mut positions) = data;
-        for (position, velocity) in (&mut positions, &velocities).join() {
-            position.x += velocity.x * time.delta;
-            position.y += velocity.y * time.delta;
         }
     }
 }

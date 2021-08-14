@@ -87,9 +87,9 @@ impl Example07 {
             }).expect("this should work.")
         } else { 0.0 };
 
-        // It's not really random, but it does the job (unless you are reading this)
-        let pos_x = (current_time * 10.0) % self.bounding_box.width();
-        let pos_y = (current_time * 100.0) % self.bounding_box.width();
+        // It's not really random, but I doubt most people will notice (unless you are reading this)
+        let pos_x = (current_time * 100.0) % self.bounding_box.width();
+        let pos_y = (current_time * 1000.0) % self.bounding_box.width();
         const MAX_VEL: f32 = 100.0;
         const HALF_MAX_VEL: f32 = MAX_VEL / 2.0;
         let vel_x = (current_time.sin() * MAX_VEL) - HALF_MAX_VEL;

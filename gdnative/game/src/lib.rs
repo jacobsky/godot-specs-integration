@@ -24,6 +24,9 @@ fn init(handle: InitHandle) {
     handle.add_class::<Example05>();
     handle.add_class::<Example06>();
     handle.add_class::<Example07>();
+    handle.add_class::<HybridUpdate01>();
+    handle.add_class::<EndlessSpawnerSignals>();
+    handle.add_class::<EndlessSpawnerHybrid>();
 }
 
 godot_init!(init);

@@ -17,10 +17,11 @@ pub struct GDEntity {
     #[property]
     pub components: Dictionary,
     // This inner components are visible to the rust layer only.
-    pub (super) inner_components: HashMap<String, Variant>,
+    pub (crate) inner_components: HashMap<String, Variant>,
     // This is not visible to godot, but it will remain in Rust so that the entity can easily update it's properties
     // pub components_to_sync: HashSet<Components>
     pub entity: Option<Entity>,
+    pub sync_components: bool,
 }
 
 #[methods]
@@ -32,6 +33,7 @@ impl GDEntity {
             components: Dictionary::new().into_shared(),
             inner_components: HashMap::new(),
             entity: None,
+            sync_components: false,
         }
     }
 
@@ -70,7 +72,7 @@ impl GDEntity {
             }).expect("this should work");
             if let Some(entity) = result {
                 self.entity = Some(entity);
-                log::info!("entity initialized to {:?}", self.entity);
+                log::trace!("entity initialized to {:?}", self.entity);
             } else {
                 log::error!("entity was not created");
             }
@@ -158,6 +160,7 @@ impl GDEntity {
     }
     /// Synchronizes the internal components
     #[inline]
+    #[gdnative::profiled]
     fn sync_internal_components(&mut self, world: &World) {
         use crate::{Player, ShaderParams};
         use specs_engine::{Velocity,  Counter, SetVelocityIntent, StayInsideBounds};
@@ -185,7 +188,7 @@ impl GDEntity {
         if let Some(entity) = self.entity {
             if world.entities().is_alive(entity) {
                 self.sync_scene_tree(owner, world);
-                self.sync_internal_components(world);
+                //self.sync_internal_components(world);
                 
                 // In addition, we can expose certain information directly to Godot by adding variant support.
             } else {
@@ -198,8 +201,9 @@ impl GDEntity {
             owner.queue_free();
         }
     }
-    // TODO: Finish this
+
     #[export]
+    #[gdnative::profiled]
     pub fn on_world_updated(&mut self, owner: TRef<Node2D>, world: Variant) {
         // This simplifies what kinds of information is supported for querying from the work.
         
@@ -218,11 +222,5 @@ impl GDEntity {
         } else {
             log::error!("world is not a Ref<Node>");
         }
-        
-        // cast the world
-        // Call synchronize internally
-        // self.synchronize(owner, world)
-        // In addition update the components from the GDWorld (which should know how to do it.)
-        // let self.components = World.get_entity_components(self.entity);
     }
 }

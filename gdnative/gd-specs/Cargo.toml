@@ -22,5 +22,5 @@ strum = "0.21.0"
 strum_macros = "0.21.1"
 
 # This is to allow unified logging functionality
-log = { version = "0.4", features = ["max_level_trace", "release_max_level_warn"] }
+log = { version = "0.4" }
 flexi_logger = "0.18"

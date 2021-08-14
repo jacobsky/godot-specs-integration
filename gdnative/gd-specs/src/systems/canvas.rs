@@ -4,8 +4,6 @@
 //! Note: One major limitation of this approach is that the SceneTree that the editor is built upon is completely bypassed.
 //! While you will still be able to make use of the output logs, much of the standard debugging and editing process will be unnavailable to you.
 
-
-
 use gdnative::api::{Material, VisualServer};
 use gdnative::prelude::*;
 
@@ -13,11 +11,15 @@ use specs::prelude::*;
 
 use super::CanvasRoot;
 use core_engine::components::*;
-use crate::gdn::{GD_CanvasItem};
 
+pub struct CreateCanvasItemMsg {
+    entity: Entity,
+    canvas: Rid,
+    texture: Ref<Texture>,
+    material: Ref<ShaderMaterial>
+}
 
-#[allow(non_camel_case_types)]
-pub struct GD_CreateCanvasItemSystem;
+pub struct CreateCanvasItemSystem;
 
 impl<'a> System<'a> for CreateCanvasItemSystem {
     type SystemData = (
@@ -103,24 +105,17 @@ impl<'a> System<'a> for CreateCanvasItemSystem {
     }
 }
 
-pub struct PruneCanvasItemSystem;
-impl<'a> System<'a> for PruneCanvasItemSystem {
-    type SystemData = (
-        Entities<'a>,
-        ReadStorage<'a, Position>,
-        WriteStorage<'a, CanvasItem>,
-    );
-    fn run(&mut self, data: Self::SystemData) {
-        let (entities, positions, mut canvas_items) = data;
-        let mut canvas_items_to_free = Vec::new();
-        {
-            for (entity, _, _) in (&entities, &canvas_items, !&positions).join() {
-                canvas_items_to_free.push(entity);
-            }
-        }
+/// This message is used to tell the engine to free the various rids. This should include all the Rids of child nodes in the system.
+pub struct FreeCanvasItemMessage{ pub rid: Vec<Rid> }
 
-        for entity in canvas_items_to_free {
-            canvas_items.remove(entity);
+pub struct FreeCanvasItemSystem;
+impl<'a> System<'a> for PruneCanvasItemSystem {
+    type SystemData = WriteExpect<'a, WorldMsgQueue<FreeCanvasItemMessage>>;
+    fn run(&mut self, data: Self::SystemData) {
+        let queue = data;
+        let vs = unsafe { VisualServer::godot_singleton() };
+        while let Some(msg) = queue.pop() {
+            vs.free_rid(msg.rid)
         }
     }
 }

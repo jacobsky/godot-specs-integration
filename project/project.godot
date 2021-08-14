@@ -17,6 +17,13 @@ config/icon="res://icon.png"
 [global]
 
 default=false
+thread=false
+
+[memory]
+
+limits/multithreaded_server/rid_pool_prealloc=500
+limits/message_queue/max_size_kb=16384
+limits/command_queue/multithreading_queue_size_kb=2048
 
 [physics]
 
@@ -24,5 +31,8 @@ common/enable_pause_aware_picking=true
 
 [rendering]
 
+quality/driver/driver_name="GLES2"
+threads/thread_model=2
+2d/opengl/batching_stream=2
 environment/default_clear_color=Color( 0, 0, 0, 1 )
 environment/default_environment="res://default_env.tres"

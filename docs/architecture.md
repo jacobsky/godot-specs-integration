@@ -38,6 +38,166 @@ As specs resources can only have a single resource of a given T, this allows saf
 
 A potential extension would be to create separate types or a use `PhantomData` to create `InboundOnly` and `OutboundOnly` queues that can be accessed via the `GDWorld`
 
+### Direct Synchronization via Servers
+
+This option 
+
+As Godot has several Singletons that serve as the API Servers, one additional option is to synchronize the ECS by using the API Servers directly.
+
+This involves manually creating the canvas items, materials, etc via the systems directly from the ECS while skipping any synchronization with the Scene tree.
+
+All CanvasItems need to be manually managed.
+
+This method has a major draw back of not using the `SceneTree` and, as a result, the SceneTree.
+VisualServer
+
+### Hybrid Synchronization
+
+As demonstrated with the `GDEntityHybrid` and `GDWorldHybrid` classes, one method that may allow us access into the best of both worlds without too many trade-offs.
+
+The GDEntityHybrid and GDWorldHybrid are responsible for the instantiation of the relevant components into the ECS and the instantiation of the `VisualServer` rids and other resources. In this implementation the GDEntityHybrid still synchronizes the data from the ECS, but it does not set the Node2D components directly.
+
+Instead we let the systems interact with the `VisualServer` directly to handle all of the direct scene related updates.
+
+Instead of implementing something like
+```rust
+#[inline]
+    fn sync_scene_tree(&mut self, owner: TRef<Node2D>, world: &World) {
+        use crate::{ShaderParams, TextureOverride};
+        use specs_engine::{Position, Scale, Rotation};
+        let entity = self.entity.expect("this should work");
+        // TODO: These probably shouldn't be optional since they are in Node2D which this inherits.
+        // It would be cleaner (and more correct) to just include an ".expects"
+        if let Some(position) = world.read_storage::<Position>().get(entity) {
+            // In this case, I only care about the global position, but it would be possible to use the local position
+            // To base the scale off of the parent
+            owner.set_global_position(Vector2::new(position.x, position.y));
+        }
+        if let Some(scale)  = world.read_storage::<Scale>().get(entity) {
+            owner.set_global_scale(Vector2::new(scale.x, scale.y));
+        }
+        if let Some(rotation)  = world.read_storage::<Rotation>().get(entity) {
+            owner.set_global_rotation(rotation.radians.into());
+        }
+        // We will give an option for the ECS to override the currently drawn texture in godot.
+        if let Some(texture) = world.read_storage::<TextureOverride>().get(entity) {
+            // First we attempt to find the "sprite" node which we assume is attached to this entity
+            if let Some(child) = owner.get_node("sprite") {
+                // For safe modification we have to assert that this is the ONLY reference to the sprite at this time.
+                // As this is internal to the sprite, we can safely assert this.
+                let child = unsafe { child.assume_unique() };
+                // Next, we cast the `Node` into `Sprite` to get the correct interface
+                if let Ok(sprite) = child.try_cast::<Sprite>() {
+                    // Finally we can set the texture
+                    sprite.set_texture(texture.texture.clone());
+                } else {
+                    log::error!("cannot cast `sprite` to CanvasItem");
+                }
+            }
+        }
+```
+
+We use a system like the following that runs last. Be sure to brush up on your matrix math so that you understand what's going on.
+```rust
+pub struct VSUpdateTransforms {}
+impl<'a> System<'a> for VSUpdateTransforms {
+    type SystemData = (
+        ReadStorage<'a, crate::components::CanvasItem>,
+        ReadStorage<'a, Position>,
+        ReadStorage<'a, Rotation>,
+        ReadStorage<'a, Scale>,
+    );
+    fn run(&mut self, data: Self::SystemData) {
+        // Start fresh
+        let (canvas_items, positions, rotations, scales) = data;
+        // Synchronize the position of any canvas items that exist
+        let vs = unsafe { VisualServer::godot_singleton() };
+        for (ci, position, scale, rotation) in (&canvas_items, &positions, &scales, &rotations).join() {
+            // This is the matrix math to handle rotation and scaling for a 2D object
+            let x1 = rotation.radians.cos() * scale.x;
+            let x2 = rotation.radians.sin();
+            let y1 = -rotation.radians.sin();
+            let y2 = rotation.radians.cos() * scale.y;
+            // This is the offset
+            let origin_x= position.x;
+            let origin_y = position.y;
+            // Put it in the transform
+            let transform = Transform2D::new(x1, x2, y1, y2, origin_x, origin_y);
+            // Let the VisualServer do the hard work.
+            vs.canvas_item_set_transform(ci.rid, transform);
+        }
+    }
+}
+```
+Oh, let's also make sure that we can update the ShaderParam as necessary with a system.
+
+```rust
+pub struct VSUpdateShaderParams {}
+
+impl <'a> System <'a> for VSUpdateShaderParams {
+    type SystemData = (
+        ReadStorage<'a, CanvasItemShader>,
+        ReadStorage<'a, ShaderParams>);
+    fn run(&mut self, data: Self::SystemData) {
+        let (shader_materials, shader_params) = data;
+        let vs = unsafe {VisualServer::godot_singleton()};
+        for (material, shader_param) in (&shader_materials, &shader_params).join() {
+            let material = unsafe { material.material.assume_safe() };
+            let rid = material.get_rid();
+            vs.material_set_param(
+                rid,
+                "fg",
+                shader_param.fg,
+            );
+            vs.material_set_param(
+                rid,
+                "bg",
+                shader_param.bg,
+            );
+        }
+    }
+}
+```
+
+
+
+As it is also possible to use the `GDEntityHybrid` as an opaque ID (though a Reference class would probably be better for this) to allow for certain GDScript-based queries to exist. This makes synchronizing the components Dictionary optional depending upon how many signals you make use of.
+
+From initial testing, I can see the performance
+
+    Important Side Note: Don't forget to turn on the thread safety if you go this route or things might deadlock. Found that bit out the hard way.
+    Important Side Note#2 : In project settings increase the following settings appropriately
+        In Memory -> Limits:
+            Multithreaded Server -> Rid Pool Prelloc: Set this to 500
+            Message Queue -> Max Size kb to whatever seems reasonable. Just increase it.
+            Command Queue -> Multithreading Queue Size Kb: Increase this as soon as you hit lag spikes. 
+
+#### Final optimizations
+
+There is one other point to consider with these system. As currently the systems run every frame and update the visual server for each.
+
+Many ECS systems offer some form of mutation tracking for entities. In specs case, by using `FlaggedStorage` and `ComponentEvent` it is possible to be notified of changes. As there is overhead associated with pushing and reading the event, this is not always an optimization.
+
+For example: in the top-down shooter game I am making for testing purposes most (>99%) things either move, rotation or scale every frame). In this case, using `FlaggedStorage` for `Position`, `Rotation` and `Scale` are unlikely to the amount of transforms that we will update every frame. In this case, the overhead caused by publishing and processing each storage's `ComponentEvent` will (probably) result in an overall performance drop.
+
+This is the opposite of `ShaderParams` where maybe 1-10% of the entities will actually modify their ShaderParams each frame. In this case the overhead is well worth it and we can substantially reduce the number of calls to the `VisualServer`
+
+Note: In a turn-based game where few entities change their position, rotation, or scale at a time, it would be helpful to use `FlaggedStorage` for managing updates to the transforms.
+
+
+TL;DR: Don't just add `FlaggedStorage` without thinking about your data and when it will update.
+
+By using an eventing system, such as Specs `FlaggedStorage` it is possible to ensure that we only update when necessary. In the examples in the source, I chose to implement `FlaggedStorage` only for `ShaderParams` and not `Position`, `Rotation`, or `Scale`. The reason is that I am working on creating a shoot-em up game where there are very few non-moving entities. As almost all entities can be assumed to need to update their tranform, adding the events to mark almost all of the events as dirty every frame isn't worth it.
+
+In turn based games or games with a lot of interactive (but stationary) entities, using `FlaggedStorage` may turn into an optional.
+
+This is the opposite of the `ShaderParams` which (in this case) rarely change so synchronization doesn't need to happen every frame. This means that the added overhead of changes by emitting events is a huge optimization.
+
+
+TL;DR: Use the SceneTree for instantiation and freeing resources. Use the VisualServer directly to update everything else.
+
+One question about this approach is "is the CanvasItem position pushed to the Server every frame? Or will ignoring (and not touching position) update everything in the background?
+
 ## ECS Specific Patterns
 
 ### Side Effect Management via Message Passing
