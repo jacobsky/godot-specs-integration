@@ -6,8 +6,8 @@
 
 [node name="example07" type="Node2D"]
 script = ExtResource( 2 )
-bounding_box = Rect2( 0, 0, 1024, 600 )
 entity = ExtResource( 3 )
+bounding_box = Rect2( 0, 0, 1024, 600 )
 world_path = NodePath("gd_world")
 
 [node name="gd_world" parent="." instance=ExtResource( 1 )]

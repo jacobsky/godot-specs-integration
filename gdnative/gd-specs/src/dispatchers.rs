@@ -70,35 +70,38 @@ pub fn signal_sync_dispatcher<'a, 'b>(enable_velocity: bool, enable_rotation: bo
         .with(UpdatePositionSystem{}, "update_position", &["update_velocity"]);
     }
     if enable_rotation {
-        builder = builder.with(UpdateLocalRotationSystem {}, "update_rotation", &[]);
+        builder = builder.with(UpdateChildRotationSystem {}, "update_rotation", &[]);
     }
     if enable_scaling {
-        builder = builder.with(UpdateLocalScaleSystem {}, "update_scale", &[]);
+        builder = builder.with(UpdateChildScaleSystem {}, "update_scale", &[]);
     }
         
     builder.build()//.with(RainbowColorSystem{}, "change_color", &[]).build()
 }
 
-pub fn hybrid_sync_dispatcher<'a, 'b>(enable_velocity: bool, enable_rotation: bool, enable_scaling: bool) -> Dispatcher<'a, 'b> {
+pub fn hybrid_sync_dispatcher<'a, 'b>(parallel: bool, enable_velocity: bool, enable_rotation: bool, enable_scaling: bool) -> Dispatcher<'a, 'b> {
     let mut builder = specs::DispatcherBuilder::new();
     if enable_velocity {
             builder = builder.with(ChangeVelocityAtBounds{}, "update_velocity", &[])
             .with(UpdatePositionSystem{}, "update_position", &["update_velocity"]);
     }
     if enable_rotation {
-        builder = builder.with(UpdateLocalRotationSystem {}, "update_rotation", &[]);
+        builder.add(UpdateChildRotationSystem {}, "update_rotation", &[]);
     }
     if enable_scaling {
-        builder = builder.with(UpdateLocalScaleSystem {}, "update_scale", &[]);
+        builder.add(UpdateChildScaleSystem {}, "update_scale", &[]);
     }
         
-    builder//.with(RainbowColorSystem{}, "change_color", &[])
-        .with_barrier()
-        .with(VSUpdateTransforms{}, "update_transforms", &[])
+    builder.add_barrier();
+    if parallel {
+        builder.add(VSUpdateTransformsParallel{}, "update_transforms", &[]);
+    } else {
+        builder.add(VSUpdateTransforms{}, "update_transforms", &[]);
+    }
         // .with(VSUpdateShaderParams{}, "update_shader_materials", &[])
-        .build()
+    builder.build()
 }
-
+// TODO: Demonstrate spawning spawning the equivalent entities directly with the VisualServer
 pub fn vs_sync_dispatcher<'a, 'b>(enable_velocity: bool, enable_rotation: bool, enable_scaling: bool) -> Dispatcher<'a, 'b> {
     let mut builder = specs::DispatcherBuilder::new();
     if enable_velocity {
@@ -106,10 +109,10 @@ pub fn vs_sync_dispatcher<'a, 'b>(enable_velocity: bool, enable_rotation: bool, 
             .with(UpdatePositionSystem{}, "update_position", &["update_velocity"]);
     }
     if enable_rotation {
-        builder = builder.with(UpdateLocalRotationSystem {}, "update_rotation", &[]);
+        builder = builder.with(UpdateChildRotationSystem {}, "update_rotation", &[]);
     }
     if enable_scaling {
-        builder = builder.with(UpdateLocalScaleSystem {}, "update_scale", &[]);
+        builder = builder.with(UpdateChildScaleSystem {}, "update_scale", &[]);
     }
         
     builder.with(RainbowColorSystem{}, "change_color", &[])

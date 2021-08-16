@@ -6,10 +6,9 @@
 
 [node name="EndlessSpawnerSignals" type="Node2D"]
 script = ExtResource( 1 )
-entity = ExtResource( 3 )
-bounding_box = Rect2( 0, 0, 1024, 600 )
-max_spawns = 4000
 world_path = NodePath("gd_world")
 spawns_per_second = 1000.0
+entity = ExtResource( 3 )
+bounding_box = Rect2( 0, 0, 1024, 600 )
 
 [node name="gd_world" parent="." instance=ExtResource( 2 )]

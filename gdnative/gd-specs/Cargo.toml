@@ -10,8 +10,9 @@ name = "gd_specs"
 path = "src/lib.rs"
 
 [dependencies]
+once_cell = "1.8.0"
 specs-engine = { path = "../specs-engine", features = ["godot"]}
-
+crossbeam = "0" 
 gdnative = "0.9.3"
 # This is the ECS of choice that is being demonstrated in this project.
 specs = "0.17"

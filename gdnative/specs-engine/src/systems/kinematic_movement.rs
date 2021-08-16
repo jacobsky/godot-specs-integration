@@ -13,50 +13,27 @@ impl <'a> System <'a> for UpdatePositionSystem {
     );
     fn run(&mut self, data: Self::SystemData) {
         let (time, velocities, mut positions) = data;
-        for (position, velocity) in (&mut positions, &velocities).join() {
-            position.x += velocity.x * time.delta;
-            position.y += velocity.y * time.delta;
-        }
+        (&mut positions, &velocities).par_join().for_each(|(position, velocity)| {
+               position.x += velocity.x * time.delta;
+               position.y += velocity.y * time.delta;
+           }
+        );
     }
 }
 
-pub struct UpdateLocalRotationSystem {}
-// Note: If you have a more physicy game, you may wish to base Velocity off of Acceleration.
-impl <'a> System <'a> for UpdateLocalRotationSystem {
+pub struct UpdateRotationSystem {}
+impl <'a> System <'a> for UpdateRotationSystem {
     type SystemData = (
         ReadExpect<'a, Time>,
-        ReadStorage<'a, TreeRelationship>,
         ReadStorage<'a, AngularVelocity>,
         WriteStorage<'a, Rotation>
     );
     fn run(&mut self, data: Self::SystemData) {
-        let (time, relationships, angular_velocities, mut rotations) = data;
-        for (relationship, angular_velocity) in (&relationships, &angular_velocities).join() {
-            for entity in relationship.children.iter() {
-                if let Some(rotation) = rotations.get_mut(*entity) {
-                    rotation.radians += angular_velocity.radians * time.delta;
-                }
-            }
-        }
-    }
-}
-pub struct UpdateLocalScaleSystem {}
-// Note: If you have a more physicy game, you may wish to base Velocity off of Acceleration.
-impl <'a> System <'a> for UpdateLocalScaleSystem {
-    type SystemData = (
-        ReadExpect<'a, Time>,
-        ReadStorage<'a, TreeRelationship>,
-        WriteStorage<'a, Scale>
-    );
-    fn run(&mut self, data: Self::SystemData) {
-        let (time, relationships,  mut scales) = data;
-        for relationship in (&relationships).join() {
-            for entity in relationship.children.iter() {
-                if let Some(scale) = scales.get_mut(*entity) {
-                    scale.x = time.total.sin() + 0.5;
-                    scale.y = time.total.cos() + 0.5;
-                }
-            }
-        }
+        let (time, angular_velocities, mut rotations) = data;
+        (&mut rotations, &angular_velocities)
+            .par_join()
+            .for_each(|(rotation, vel)|{
+                rotation.radians += vel.radians + time.delta;
+            });
     }
 }

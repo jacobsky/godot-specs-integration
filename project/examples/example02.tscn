@@ -8,10 +8,10 @@
 
 [node name="example02" type="Node2D"]
 script = ExtResource( 2 )
-move_speed = 10.0
-bounding_box = Rect2( 0, 0, 1024, 600 )
-player_texture = ExtResource( 4 )
 world_path = NodePath("gd_world")
+player_texture = ExtResource( 4 )
+bounding_box = Rect2( 0, 0, 1024, 600 )
+move_speed = 10.0
 
 [node name="gd_world" parent="." instance=ExtResource( 1 )]
 

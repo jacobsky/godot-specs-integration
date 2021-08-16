@@ -8,10 +8,10 @@
 
 [node name="hybrid_update01" type="Node2D"]
 script = ExtResource( 1 )
-enable_rotation = true
-bounding_box = Rect2( 0, 0, 1024, 600 )
-enable_scaling = true
 world_path = NodePath("world")
+bounding_box = Rect2( 0, 0, 1024, 600 )
+enable_rotation = true
+enable_scaling = true
 
 [node name="entity" type="Node2D" parent="."]
 script = ExtResource( 3 )

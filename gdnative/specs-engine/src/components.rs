@@ -99,6 +99,7 @@ pub struct StayInsideBounds;
 pub struct Counter(pub i32);
 
 /// This represents a "tree-like" relationship between entities. The current entity may index a parent and a list of children
+/// This is used to mimic the scene-tree relationship that allows for objects to rotate in place.
 #[derive(Debug, Default, Component)]
 pub struct TreeRelationship {
     // If there is no parent, this should be treated as the root
