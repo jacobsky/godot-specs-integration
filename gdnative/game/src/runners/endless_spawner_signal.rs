@@ -1,6 +1,5 @@
 use gdnative::prelude::*;
 use gd_specs::*;
-use std::collections::HashSet;
 
 /// This example is intended to test the total performance of spawning, updating and despawning when using Signals with GDEntity and GDWorld 
 #[derive(NativeClass)]
@@ -86,13 +85,14 @@ impl EndlessSpawnerSignals {
         if self.spawns.len() < self.max_spawns as usize &&
             self.world_instance.is_some() &&
             self.spawn_timer > self.seconds_per_spawns {
-            // Incase of instances where they expect more than 1 spawn per frame
-            // Also to try to not spawn more than necessary.
-            while self.spawns.len() < self.max_spawns as usize && self.spawn_timer > self.seconds_per_spawns {
-                self.spawn_timer -= self.seconds_per_spawns;
-                self.spawn_entity(owner);
-            }
-            log::debug!("total spawns: {}", self.spawns.len());
+                let mut num_spawns = 0;
+                while self.spawns.len() < self.max_spawns as usize && self.spawn_timer > self.seconds_per_spawns {
+                    self.spawn_timer -= self.seconds_per_spawns;
+                    // self.spawn_entity(owner);
+                    num_spawns += 1;
+                }
+                self.spawn_entities(owner, num_spawns);
+                log::debug!("total spawns: {}", self.spawns.len());
         }
         if let Some(instance) = &self.world_instance {
             let instance = unsafe { instance.assume_safe() };
@@ -104,21 +104,90 @@ impl EndlessSpawnerSignals {
 
     #[export]
     #[gdnative::profiled]
+    pub fn set_gd_entity_properties(&self, _: TRef<Node>, node: Ref<Node>) {
+        let pos_x = self.bounding_box.width() / 2.0;
+        let pos_y = 1.0;
+        let vel_x = (self.time * 10.0 % 40.0) - 20.0;
+        let vel_y = 300.0;
+        let ang_vel = 1.0;
+
+        let instance = unsafe { node.assume_unique() };
+        let instance = instance.try_cast::<Node2D>().expect("root node type should be correct");
+        let instance = unsafe { instance.into_shared().assume_safe() };
+        let gd_entity = instance.cast_instance::<GDEntity>().expect("this should work");
+        gd_entity.map_mut(|e, o| {
+
+            e.set_component("Velocity", Vector2::new(vel_x as f32, vel_y));
+            e.set_component("AngularVelocity", ang_vel.to_variant());
+            e.world_path = NodePath::from_str(format!("../../{}", self.world_path.to_string()).as_str());
+            // e.components; 
+            o.set_position(Vector2::new(pos_x, pos_y));
+        }).expect("this should work");
+    }
+    #[export]
+    #[gdnative::profiled]
+    pub fn instance_node(&self, _: TRef<Node>) -> Ref<Node> {
+        let scene = unsafe { self.entity.assume_safe() };
+        scene.instance(PackedScene::GEN_EDIT_STATE_DISABLED).expect("should be able to instance scene")
+    }
+    #[export]
+    #[gdnative::profiled]
+    pub fn add_children_to_self(&self, owner: TRef<Node>, array: VariantArray) {
+        const ENTITIES_PER_CHILD : i32 = 512;
+        // This is the total number of spawns after `array` is added to the list
+        let current_spawns = self.spawns.len() as i32;
+        let total_spawns = current_spawns + array.len();
+        let total_children_required = total_spawns / ENTITIES_PER_CHILD;
+        while (owner.get_child_count() as i32) < total_children_required + 1 {
+            let node = Node::new();
+            owner.add_child(node, true);
+        }
+        let mut roots = Vec::new();
+        for idx in 0..owner.get_child_count() as i32 {
+            let root = owner.get_child(idx as i64).expect("this should exist");
+            let root = unsafe { root.assume_safe() };
+            roots.push(root);
+        }
+
+        for (i, child) in array.iter().enumerate() {
+            let idx = (current_spawns as usize + i) / ENTITIES_PER_CHILD as usize;
+            let instance = child.try_to_object::<Node>().expect("this should work");
+            roots[idx].add_child(instance, true);
+        }
+    }
+    #[export]
+    #[gdnative::profiled]
+    pub fn spawn_entities(&mut self, owner: TRef<Node>, num_spawns: i32) {
+        log::trace!("spawn_entity");
+        let mut spawned_nodes = Vec::new();
+        let variant_array = VariantArray::new();
+
+        for _ in 0 .. num_spawns {
+            let node = self.instance_node(owner);
+            let instance = unsafe { node.assume_unique() };
+            let instance = instance.try_cast::<Node2D>().expect("root node type should be correct");
+            self.set_gd_entity_properties(owner, node);
+            variant_array.push(instance.owned_to_variant());
+            spawned_nodes.push(node);
+        }
+        self.add_children_to_self(owner, variant_array.into_shared());
+        for node in spawned_nodes {
+            self.spawns.push(node);
+        }
+    }
+    #[export]
+    #[gdnative::profiled]
     pub fn spawn_entity(&mut self, owner: TRef<Node>) {
-        // log::trace!("spawn_entity");
+        log::trace!("spawn_entity");
         let scene = unsafe { self.entity.assume_safe() };
 
-        let node = scene
-            .instance(PackedScene::GEN_EDIT_STATE_DISABLED)
-            .expect("should be able to instance scene");
+        let node = scene.instance(PackedScene::GEN_EDIT_STATE_DISABLED).expect("should be able to instance scene");
     
         let instance = unsafe { node.assume_unique() };
     
-        let instance = instance
-            .try_cast::<Node2D>()
-            .expect("root node type should be correct");
+        let instance = instance.try_cast::<Node2D>().expect("root node type should be correct");
         let instance = unsafe { instance.into_shared().assume_safe() };
-
+        
         let pos_x = self.bounding_box.width() / 2.0;
         let pos_y = 1.0;
         let vel_x = (self.time * 10.0 % 40.0) - 20.0;
@@ -127,6 +196,7 @@ impl EndlessSpawnerSignals {
 
         let gd_entity = instance.cast_instance::<GDEntity>().expect("this should work");
         gd_entity.map_mut(|e, o| {
+
             e.set_component("Velocity", Vector2::new(vel_x as f32, vel_y));
             e.set_component("AngularVelocity", ang_vel.to_variant());
             e.world_path = NodePath::from_str(format!("../{}", self.world_path.to_string()).as_str());

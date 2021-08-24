@@ -62,6 +62,11 @@ pub struct CanvasItem {
 //         vs.free_rid(self.rid);
 //     }
 // }
+pub struct MoveIntent {
+    x: f32,
+    y: f32,
+}
+
 #[derive(Debug, Component)]
 pub struct CanvasItemTexture {
     pub (crate) texture: Ref<Texture>,

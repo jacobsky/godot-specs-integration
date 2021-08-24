@@ -1,9 +1,13 @@
-use gdnative::core_types::Vector2;
+#[cfg(feature = "godot")]
+use gdnative::prelude::*;
+
 use specs::prelude::*;
 use specs_derive::Component;
 
 #[cfg(feature = "godot")]
-use gdnative::prelude::ToVariant;
+mod godot_ext;
+#[cfg(feature = "godot")]
+pub use godot_ext::*;
 /// Defines the position of an entity in 2D space
 
 #[derive(Debug, Component)]
@@ -13,17 +17,18 @@ pub struct Position {
     pub y: f32,
 }
 
-#[cfg(feature = "godot")]
-impl From<&Position> for gdnative::core_types::Vector2 {
-    fn from(pos: &Position) -> Self {
-        Vector2::new(pos.x, pos.y)
-    }
+/// Defines the velocity (change in position) of an entity in 2D space
+#[derive(Debug, Component)]
+#[cfg_attr(feature = "godot", derive(ToVariant))]
+pub struct Velocity {
+    pub x: f32,
+    pub y: f32,
 }
-#[cfg(feature = "godot")]
-impl From<&gdnative::core_types::Vector2> for Position {
-    fn from(vec: &gdnative::core_types::Vector2) -> Self {
-        Self { x: vec.x, y: vec.y }
-    }
+
+#[derive(Debug, Component)]
+#[cfg_attr(feature = "godot", derive(ToVariant))]
+pub struct AngularVelocity {
+    pub radians: f32,
 }
 
 
@@ -40,46 +45,7 @@ pub struct Scale {
     pub y: f32
 }
 
-#[cfg(feature = "godot")]
-impl From<&Scale> for gdnative::core_types::Vector2 {
-    fn from(scale: &Scale) -> Self {
-        Vector2::new(scale.x, scale.y)
-    }
-}
 
-#[cfg(feature = "godot")]
-impl From<&gdnative::core_types::Vector2> for Scale {
-    fn from(vec: &gdnative::core_types::Vector2) -> Self {
-        Self { x: vec.x, y: vec.y }
-    }
-}
-/// Defines the velocity (change in position) of an entity in 2D space
-#[derive(Debug, Component)]
-#[cfg_attr(feature = "godot", derive(ToVariant))]
-pub struct Velocity {
-    pub x: f32,
-    pub y: f32,
-}
-
-#[derive(Debug, Component)]
-#[cfg_attr(feature = "godot", derive(ToVariant))]
-pub struct AngularVelocity {
-    pub radians: f32,
-}
-
-#[cfg(feature = "godot")]
-impl From<&Velocity> for gdnative::core_types::Vector2 {
-    fn from(velocity: &Velocity) -> Self {
-        Vector2::new(velocity.x, velocity.y)
-    }
-}
-
-#[cfg(feature = "godot")]
-impl From<&gdnative::core_types::Vector2> for Velocity {
-    fn from(vec: &gdnative::core_types::Vector2) -> Self {
-        Self { x: vec.x, y: vec.y }
-    }
-}
 /// Indicates that an entity wants to instantaneously change it's velocity to the current value
 #[derive(Debug, Component)]
 #[cfg_attr(feature = "godot", derive(ToVariant))]
@@ -107,6 +73,13 @@ pub struct TreeRelationship {
     pub children: Vec<Entity>,
 }
 
+/// This represents a "tree-like" relationship between entities. The current entity may index a parent and a list of children
+/// This is used to mimic the scene-tree relationship that allows for objects to rotate in place.
+#[derive(Debug, Default, Component)]
+pub struct StringContainer {
+    pub message: String,
+}
+
 pub fn register_components(world: &mut World) {
     world.register::<Position>();
     world.register::<Rotation>();
@@ -117,4 +90,5 @@ pub fn register_components(world: &mut World) {
     world.register::<StayInsideBounds>();
     world.register::<Counter>();
     world.register::<TreeRelationship>();
+    world.register::<StringContainer>();
 }

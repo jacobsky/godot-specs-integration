@@ -6,12 +6,17 @@ use gdnative::prelude::*;
 mod components;
 mod dispatchers;
 mod examples;
+mod game;
 mod systems;
 
 pub use components::*;
 pub use dispatchers::*;
-pub use systems::*;
 pub use examples::*;
+pub use game::*;
+pub use systems::*;
+
+// this is the world registry that is used to track the various game worlds.
+const WORLD_REGISTRY_NAME : &'static str = "world_registry";
 
 pub fn init(handle: InitHandle) {
     // Initialize the logger to make compatible with godot.

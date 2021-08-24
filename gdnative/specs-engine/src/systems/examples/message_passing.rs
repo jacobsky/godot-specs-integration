@@ -1,5 +1,6 @@
 use specs::prelude::*;
 use crate::resources::WorldMsgQueue;
+use crate::components::StringContainer;
 
 pub struct StringMessage {
     pub message: String
@@ -18,6 +19,22 @@ impl <'a> System <'a> for MessagePrintingSystem {
     }
 }
 
+pub struct MessengerSystem {}
+impl <'a> System <'a> for MessengerSystem {
+    type SystemData = (
+        WriteExpect<'a, WorldMsgQueue<StringMessage>>,
+        WriteStorage<'a, StringContainer>
+    );
+    fn run(&mut self, data: Self::SystemData) {
+        let (queue, mut string_containers) = data;
+        // Take one message per frame, just so we can see the message change each time.
+        if let Some(msg) = queue.pop() {
+            for container in (&mut string_containers).join() {
+                container.message = msg.message.to_owned();
+            }
+        }
+    }
+}
 pub struct FizzbuzzInputMessage(pub i32);
 pub struct FizzbuzzOutputMessage(pub String);
 

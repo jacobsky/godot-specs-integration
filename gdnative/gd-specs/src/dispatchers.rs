@@ -63,6 +63,13 @@ pub fn example_6_dispatcher<'a, 'b>() -> Dispatcher<'a, 'b> {
     .build()
 }
 
+
+pub fn example_8_dispatcher<'a, 'b>() -> Dispatcher<'a, 'b> {
+    specs::DispatcherBuilder::new()
+        .with(MessengerSystem{}, "messenger", &[])
+        .build()
+}
+
 pub fn signal_sync_dispatcher<'a, 'b>(enable_velocity: bool, enable_rotation: bool, enable_scaling: bool) -> Dispatcher<'a, 'b> {
     let mut builder = specs::DispatcherBuilder::new();
     if enable_velocity {

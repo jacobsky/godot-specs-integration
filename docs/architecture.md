@@ -208,6 +208,12 @@ In this case, it is adviseable to access any given thread from a single place at
 In the `endless_spawner_hybrid`, I there is an option that can be selected where the engine does access the  `VisualServer` until it returns from the ecs run. By using a crossbeam `ArrayQueue`, you can safely queue messages to be run in the main thread. As you can see from running the experiment, this does appear to sufficiently change the performance characteristics of the thread.
 
 In some ways, this is really convenient that the simplest method yields the best performance. I also did the leg work in this repository so there's no need for you to research this on your own :).
+
+### ECS World Update vs Synchronization
+
+One additional note: The examples in this are providing a single GDWorld script that contains a single world and a single dispatcher.
+
+When attempting to make a more complex game, it is highly adviseable that you not tightly couple the logic update with the visual update. At minimum it would be best to run a logic dispatcher and a synchronization dispatcher separately (assuming that want to synchronize using systems).
 ## ECS Specific Patterns
 
 ### Side Effect Management via Message Passing
@@ -217,8 +223,6 @@ SideEffects is anything that modifies the state of the program. Rust is a langua
 With games programming there can be many, seemlingly random side effects. For example: Movement, Spawning Mobs, Incrementing Score, using Items, handling achievements, etc.
 
 While it can be possible (depending upon the style of the game) to ensure that each side effect occurs in one (and only one) system, it is unlikely that that will occur. In addition, due to Rust's mutability paradigm, each system can access components mutably and immutibly via the `WriteStorage<T>` and `ReadStorage<T>` respectively. While the specs `Dispatcher` will ensure that no two systems will ever have mutable access to the same storage at the same time. This often leads to complex sets of side effects resulting in a much less thread friendly set of systems.
-
-Lazy
 
 Something that ECS can often reflect is the idea of Micro Service Architectures where each system is responsible for one set of decisions and then can use message passing to dispatch behaviors to other services. With a series of message queues that can be used to send requests for changes that can be managed by separate systems.
 
@@ -235,4 +239,13 @@ For more information about LazyUpdate:
 [LazyUpdate Docs](https://docs.rs/specs/0.17.0/specs/struct.LazyUpdate.html)
 `LazyUpdate` is a function of Specs that allows you to defer actions until the end of the current dispatching. This is good for anything that may need to touch a large number of systems.
 
-While you could manage all side effects 
+### Storage Selection
+
+`Storage` serves as an abstraction for how the data is laid out in memory. This indirectly impacts performance based on how your data is layed out.
+
+The most common storage types that you will work with are
+
+- `VecStorage` the default storage type that stores all component data in vecs. If you don't set anything spec
+
+For example: `DefaultVecStorage` stores all  w
+[storage module Documentation](https://docs.rs/specs/0.17.0/specs/storage/index.html)

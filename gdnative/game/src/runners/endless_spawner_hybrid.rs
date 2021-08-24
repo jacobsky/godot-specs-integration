@@ -11,6 +11,8 @@ pub struct EndlessSpawnerHybrid {
     max_spawns: i32,
     #[property(default = 100)]
     despawn_rate: i32,
+    #[property(default = false)]
+    parallel: bool,
     #[property(default = true)]
     enable_velocity: bool,
     #[property(default = false)]
@@ -38,6 +40,7 @@ impl EndlessSpawnerHybrid {
             spawns_per_second: 1.0,
             max_spawns: 10000,
             despawn_rate: 100,
+            parallel: false, 
             enable_velocity: true,
             enable_rotation: false,
             enable_scaling: false,
@@ -56,6 +59,7 @@ impl EndlessSpawnerHybrid {
     }
 
     #[export]
+    #[gdnative::profiled]
     pub fn _ready(&mut self, owner: &Node) {
         // Do the initialization here
         if let Some(gd_world) = unsafe { owner.get_node_as_instance::<GDWorldHybrid>(self.world_path.to_string().as_str()) } {
@@ -67,15 +71,25 @@ impl EndlessSpawnerHybrid {
                     self.bounding_box.size.width,
                     self.bounding_box.size.height,
                 ));
+                world.insert_resource(specs_engine::WorldMsgQueue::<VSTransformSetMessage>::new());
                 // Add a dispatcher that has all of the relevant systems
-                world.set_dispatcher(gd_specs::hybrid_sync_dispatcher(self.enable_velocity, self.enable_rotation, self.enable_scaling));
+                world.set_dispatcher(gd_specs::hybrid_sync_dispatcher(self.parallel, self.enable_velocity, self.enable_rotation, self.enable_scaling));
             }).expect("this should work correctly");
             self.world_instance = Some(gd_world.claim());
         }
         self.seconds_per_spawns = 1.0 / self.spawns_per_second;
     }
+    #[export]
+    #[gdnative::profiled]
+    pub fn update_visual_server_transform(&mut self, _: TRef<Node>) {
+        let vs = unsafe { gdnative::api::VisualServer::godot_singleton() };
+        while let Some(msg) = gd_specs::VS_TRANSFORM_QUEUE.pop() {
+            vs.canvas_item_set_transform(msg.0, msg.1);
+        }
+    }
 
     #[export]
+    #[gdnative::profiled]
     pub fn _process(&mut self, owner: TRef<Node>, delta: f64) {
         self.time += delta;
         self.spawn_timer += delta;
@@ -85,17 +99,99 @@ impl EndlessSpawnerHybrid {
             self.spawn_timer > self.seconds_per_spawns {
             // Incase of instances where they expect more than 1 spawn per frame
             // Also to try to not spawn more than necessary.
+            let mut num_spawns = 0;
             while self.spawns.len() < self.max_spawns as usize && self.spawn_timer > self.seconds_per_spawns {
                 self.spawn_timer -= self.seconds_per_spawns;
-                self.spawn_entity(owner);
+                // self.spawn_entity(owner);
+                num_spawns += 1;
             }
+            self.spawn_entities(owner, num_spawns);
             log::debug!("total spawns: {}", self.spawns.len());
         }
         if let Some(instance) = &self.world_instance {
             let instance = unsafe { instance.assume_safe() };
             instance.map_mut(|world, owner| {
                 world.run(owner, delta);
+                // If we attempt to parallelize the transformation it's still more optimized to 
+                // dispatch the VisualServer commands here
+                
             }).expect("this should run successfully");
+            if self.parallel {
+                self.update_visual_server_transform(owner);
+            }
+        }
+    }
+    #[export]
+    #[gdnative::profiled]
+    pub fn set_gd_entity_properties(&self, _: TRef<Node>, node: Ref<Node>) {
+        let pos_x = self.bounding_box.width() / 2.0;
+        let pos_y = 1.0;
+        let vel_x = (self.time * 10.0 % 40.0) - 20.0;
+        let vel_y = 300.0;
+        let ang_vel = 1.0;
+
+        let instance = unsafe { node.assume_unique() };
+        let instance = instance.try_cast::<Node2D>().expect("root node type should be correct");
+        let instance = unsafe { instance.into_shared().assume_safe() };
+        let gd_entity = instance.cast_instance::<GDEntityHybrid>().expect("this should work");
+        gd_entity.map_mut(|e, o| {
+
+            e.set_component("Velocity", Vector2::new(vel_x as f32, vel_y));
+            e.set_component("AngularVelocity", ang_vel.to_variant());
+            e.world_path = NodePath::from_str(format!("../../{}", self.world_path.to_string()).as_str());
+            // e.components; 
+            o.set_position(Vector2::new(pos_x, pos_y));
+        }).expect("this should work");
+    }
+    #[export]
+    #[gdnative::profiled]
+    pub fn instance_node(&self, _: TRef<Node>) -> Ref<Node> {
+        let scene = unsafe { self.entity.assume_safe() };
+        scene.instance(PackedScene::GEN_EDIT_STATE_DISABLED).expect("should be able to instance scene")
+    }
+    #[export]
+    #[gdnative::profiled]
+    pub fn add_children_to_self(&self, owner: TRef<Node>, array: VariantArray) {
+        const ENTITIES_PER_CHILD : i32 = 512;
+        // This is the total number of spawns after `array` is added to the list
+        let current_spawns = self.spawns.len() as i32;
+        let total_spawns = current_spawns + array.len();
+        let total_children_required = total_spawns / ENTITIES_PER_CHILD;
+        while (owner.get_child_count() as i32) < total_children_required + 1 {
+            let node = Node::new();
+            owner.add_child(node, true);
+        }
+        let mut roots = Vec::new();
+        for idx in 0..owner.get_child_count() as i32 {
+            let root = owner.get_child(idx as i64).expect("this should exist");
+            let root = unsafe { root.assume_safe() };
+            roots.push(root);
+        }
+
+        for (i, child) in array.iter().enumerate() {
+            let idx = (current_spawns as usize + i) / ENTITIES_PER_CHILD as usize;
+            let instance = child.try_to_object::<Node>().expect("this should work");
+            roots[idx].add_child(instance, true);
+        }
+    }
+    #[export]
+    #[gdnative::profiled]
+    pub fn spawn_entities(&mut self, owner: TRef<Node>, num_spawns: i32) {
+        log::trace!("spawn_entity");
+        let mut spawned_nodes = Vec::new();
+        let variant_array = VariantArray::new();
+
+        for _ in 0 .. num_spawns {
+            let node = self.instance_node(owner);
+            let instance = unsafe { node.assume_unique() };
+            let instance = instance.try_cast::<Node2D>().expect("root node type should be correct");
+            self.set_gd_entity_properties(owner, node);
+            variant_array.push(instance.owned_to_variant());
+            spawned_nodes.push(node);
+        }
+        self.add_children_to_self(owner, variant_array.into_shared());
+        for node in spawned_nodes {
+            self.spawns.push(node);
         }
     }
     #[export]
@@ -104,15 +200,11 @@ impl EndlessSpawnerHybrid {
         log::trace!("spawn_entity");
         let scene = unsafe { self.entity.assume_safe() };
 
-        let node = scene
-            .instance(PackedScene::GEN_EDIT_STATE_DISABLED)
-            .expect("should be able to instance scene");
+        let node = scene.instance(PackedScene::GEN_EDIT_STATE_DISABLED).expect("should be able to instance scene");
     
         let instance = unsafe { node.assume_unique() };
     
-        let instance = instance
-            .try_cast::<Node2D>()
-            .expect("root node type should be correct");
+        let instance = instance.try_cast::<Node2D>().expect("root node type should be correct");
         let instance = unsafe { instance.into_shared().assume_safe() };
         
         let pos_x = self.bounding_box.width() / 2.0;

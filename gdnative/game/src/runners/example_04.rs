@@ -4,7 +4,7 @@ use gdnative::prelude::*;
 use gd_specs::*;
 use specs_engine::{StringMessage};
 
-/// This demonstrates use of the message queue via an overengineered fizzbuzz solution.
+/// This demonstrates use of the message queue to pass a string into the world
 #[derive(NativeClass)]
 #[inherit(Node)]
 pub struct Example04 {

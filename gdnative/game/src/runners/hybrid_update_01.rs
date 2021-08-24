@@ -49,7 +49,7 @@ impl HybridUpdate01 {
                     self.bounding_box.size.height,
                 ));
                 // Add a dispatcher that has all of the relevant systems
-                world.set_dispatcher(gd_specs::hybrid_sync_dispatcher(self.enable_velocity, self.enable_rotation, self.enable_scaling));
+                world.set_dispatcher(gd_specs::hybrid_sync_dispatcher(false, self.enable_velocity, self.enable_rotation, self.enable_scaling));
             }).expect("this should work correctly");
             self.world_instance = Some(gd_world.claim());
         }
@@ -65,7 +65,6 @@ impl HybridUpdate01 {
         }
     }
     // Add an auto spawn code to validate spawning and deletion
-    // #[export]
     // pub fn on_click_spawn(&self, owner: TRef<Node>) {
     //     let scene = unsafe { self.entity.assume_safe() };
 

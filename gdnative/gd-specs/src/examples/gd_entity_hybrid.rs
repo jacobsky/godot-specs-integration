@@ -1,5 +1,4 @@
 use gdnative::prelude::*;
-use gdnative::api::ShaderMaterial;
 
 use specs::prelude::*;
 use crate::GDWorldHybrid;
@@ -54,6 +53,7 @@ impl GDEntityHybrid {
                 }
             }
         }
+        
         // This grabs the GDWorld based on the Scene itself, but likely the World will be one of many, it would be much cleaner to have another
         // Object (such as an Autoload singleton) that holds this information for us.
         let world = unsafe {
